@@ -1,0 +1,29 @@
+### Buy signal
+POST http://localhost:3000/signal
+Content-Type: application/json
+
+{
+"asset": "ETH",
+"side": "buy"
+}
+
+### Sell signal
+POST http://localhost:3000/signal
+Content-Type: application/json
+
+{
+"asset": "BTC",
+"side": "sell"
+}
+### Balances
+GET http://localhost:3000/balances
+
+### Release quote
+POST http://localhost:3000/release-quote
+Content-Type: application/json
+
+{
+"account": "binance_sub1",
+"quote": "USDT",
+"qty": 20
+}

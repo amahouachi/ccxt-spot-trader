@@ -1,0 +1,6 @@
+{
+  "preset": "ts-jest",
+  "moduleFileExtensions": ["ts", "js", "json"],
+  "testRegex": ["test/.*.ts"],
+  "verbose": true
+}

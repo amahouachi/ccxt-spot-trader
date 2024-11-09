@@ -1,0 +1,71 @@
+{
+  "endpoints": {
+    "signal": "/signal",
+    "releaseQuote": "/release-quote",
+    "balances": "/balances"
+  },
+  "port": 3000,
+  "accounts": [
+    {
+      "name": "zignaly",
+      "active": false,
+      "exchange": {
+        "name": "binance",
+        "config": {
+          "apiKey": "",
+          "secret": ""
+        }
+      },
+      "gas": {
+        "base": "BNB",
+        "quote": "USDT",
+        "rate": 0.16,
+        "reserved": 0
+      },
+      "markets": [
+        {
+          "quote": "USDT",
+          "assets": [
+            { "name": "ETH", "pct": 0.5, "max": 300000 },
+            { "name": "BTC", "pct": 0.3, "max": 400000 },
+            { "name": "SOL", "pct": 0.2, "max": 100000 }
+          ]
+        },
+        {
+          "quote": "FDUSD",
+          "assets": [
+            {"name":  "ETH", "pct":  0.5, "max":  200000},
+            {"name":  "BTC", "pct":  0.5, "max":  200000}
+          ]
+        }
+      ]
+    },
+    {
+      "name": "binance_sub1",
+      "active": true,
+      "exchange": {
+        "name": "binance",
+        "config": {
+          "apiKey": "",
+          "secret": ""
+        }
+      },
+      "gas": {
+        "base": "BNB",
+        "quote": "USDT",
+        "rate": 0.16,
+        "reserved": 0
+      },
+      "markets": [
+        {
+          "quote": "USDT",
+          "assets": [
+            { "name": "ETH", "pct": 0.5, "max": 300000 },
+            { "name": "BTC", "pct": 0.3, "max": 400000 },
+            { "name": "SOL", "pct": 0.2, "max": 100000 }
+          ]
+        }
+      ]
+    }
+  ]
+}

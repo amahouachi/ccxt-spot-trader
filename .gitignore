@@ -1,0 +1,5 @@
+config.json
+/.idea
+/node_modules
+/coverage
+*.log
