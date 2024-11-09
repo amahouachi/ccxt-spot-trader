@@ -12,8 +12,8 @@ POST http://localhost:3000/signal
 Content-Type: application/json
 
 {
-"asset": "BTC",
-"side": "sell"
+"asset": "ETH",
+"side": "buy"
 }
 ### Balances
 GET http://localhost:3000/balances

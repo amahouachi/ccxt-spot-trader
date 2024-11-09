@@ -72,14 +72,17 @@ export default class ExchangeAccount{
       const balance= await this.exchange._exchange.fetchBalance();
       this.balance= {};
       for(const market of this.markets){
+        const baseBalance= balance[market.base];
         //@ts-ignore
-        this.balance[market.base]= balance[market.base].total;
+        this.balance[market.base]= baseBalance?baseBalance.total:0;
+        const quoteBalance= balance[market.quote];
         //@ts-ignore
-        this.balance[market.quote]= balance[market.quote].total;
+        this.balance[market.quote] = quoteBalance ? quoteBalance.total : 0;
       }
       if(this.gas){
+        const gasBalance= balance[this.gas.base];
         //@ts-ignore
-        this.balance[this.gas.base]= balance[this.gas.base].total;
+        this.balance[this.gas.base]= gasBalance?gasBalance.total:0;
       }
       logger.debug(`Loaded balance : ${JSON.stringify(this.balance)}`, this.name);
     }catch(e: any){
