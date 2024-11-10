@@ -71,17 +71,19 @@ export default class ExchangeAccount{
     try{
       const balance= await this.exchange._exchange.fetchBalance();
       this.balance= {};
+      let totalValue= 0;
+      //NOTE totalValue and freeQuote calculation supposes we have one single quote which can be wrong
       for(const market of this.markets){
         const baseQty= balance[market.base]?.total||0;
         const baseValue= Number((baseQty*market.price).toFixed(2));
         this.balance[market.base]= {qty: baseQty, value: baseValue};
         const quoteQty= balance[market.quote]?.total||0;
-        this.balance[market.quote] = {qty: quoteQty, value: quoteQty};
+        totalValue+= baseValue;
+        this.balance[market.quote] = {qty: quoteQty, value: Number(totalValue.toFixed(2))};
       }
       if(this.gas){
-        const gasBalance= balance[this.gas.base];
-        //@ts-ignore
-        this.balance[this.gas.base]= gasBalance?gasBalance.total:0;
+        const gasQty= balance[this.gas.base]?.total||0;
+        this.balance[this.gas.base]= {qty: gasQty, value: 0};
       }
       logger.debug(`Loaded balance : ${JSON.stringify(this.balance)}`, this.name);
     }catch(e: any){
