@@ -5,6 +5,7 @@ import { BuyRequest, ExchangeAccountConfig, OrderSide, ReleaseQuoteRequest } fro
 import ExchangeAccount from "./exchange_account";
 import { Util } from "./util";
 import Signal from "./signal";
+import TelegramBot from 'node-telegram-bot-api';
 
 logger.configure({disableConsole: false, disableFile: false, level: 'debug', fileName: 'app.log', rootPath: '.'});
 
@@ -13,6 +14,9 @@ const accounts = accountConfigs.map(account => ExchangeAccount.fromConfig(accoun
 const activeAccounts= accounts.filter(account => account.active);
 
 async function start(){
+
+  const telegramBot = new TelegramBot(config.telegram.token);
+  
 
   for(const account of activeAccounts){
     await account.loadMarkets();
@@ -48,7 +52,23 @@ async function start(){
       if (side === "sell") {
         await account.refillGas();
       }
-    })
+    });
+    let assetUsdtMarket= undefined;
+    for(const account of activeAccounts){
+      assetUsdtMarket = account.findMarkets(asset).find(market => market.quote==='USDT');
+      if(assetUsdtMarket){
+        break;
+      }
+    }
+    let assetPrice= 20;
+    if(assetUsdtMarket){
+      assetPrice= Number((assetUsdtMarket.price*0.9).toFixed(2));
+    }
+    let telegramMessage= `${asset}/USDT\n${side} at current price\nSL ${assetPrice}`;
+    if(side==='sell'){
+      telegramMessage= `/close ${asset}/USDT`;
+    }
+    telegramBot.sendMessage(config.telegram.chatId, telegramMessage);
   });
   server.addPostEndpoint(endpoints.releaseQuote, async (req: any, res: any) => {
     const request= req.body as ReleaseQuoteRequest;

@@ -5,6 +5,10 @@
     "balances": "/balances"
   },
   "port": 3000,
+  "telegram": {
+    "token": "",
+    "chatId": ""
+  },
   "accounts": [
     {
       "name": "zignaly",
