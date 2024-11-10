@@ -21,9 +21,9 @@ async function start(){
   for(const account of activeAccounts){
     await account.loadMarkets();
     await Util.sleep(500);
-    await account.loadBalance();
-    await Util.sleep(500);
     await account.loadMarketPrices();
+    await Util.sleep(500);
+    await account.loadBalance();
     await Util.sleep(500);
   }
   
@@ -93,15 +93,14 @@ async function start(){
     res.end();
   });
   server.addGetEndpoint(endpoints.balances, async (req: any, res: any) => {
+    const balances= [];
     for(const account of activeAccounts){
+      await account.loadMarketPrices();
+      await Util.sleep(500);
       await account.loadBalance();
+      balances.push({account: account.name, balance: account.balance});
     }
-    res.json(activeAccounts.map(account => {
-      return {
-        account: account.name,
-        balance: account.balance
-      };
-    }));
+    res.json(balances);
     res.end();
   });
 

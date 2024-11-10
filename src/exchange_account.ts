@@ -21,8 +21,8 @@ export default class ExchangeAccount{
   
   async refillGas(){
     if(this.gas){
-      const availableGas= this.balance[this.gas.base]-this.gas.reserved;
-      const availableQuote= this.balance[this.gas.quote];
+      const availableGas= this.balance[this.gas.base].qty-this.gas.reserved;
+      const availableQuote= this.balance[this.gas.quote].qty;
       const neededGasQuote= availableQuote*this.gas.rate/100;
       const gasTicker= await this.exchange._exchange.fetchTicker(this.gas.symbol);
       //@ts-ignore
@@ -72,12 +72,11 @@ export default class ExchangeAccount{
       const balance= await this.exchange._exchange.fetchBalance();
       this.balance= {};
       for(const market of this.markets){
-        const baseBalance= balance[market.base];
-        //@ts-ignore
-        this.balance[market.base]= baseBalance?baseBalance.total:0;
-        const quoteBalance= balance[market.quote];
-        //@ts-ignore
-        this.balance[market.quote] = quoteBalance ? quoteBalance.total : 0;
+        const baseQty= balance[market.base]?.total||0;
+        const baseValue= Number((baseQty*market.price).toFixed(2));
+        this.balance[market.base]= {qty: baseQty, value: baseValue};
+        const quoteQty= balance[market.quote]?.total||0;
+        this.balance[market.quote] = {qty: quoteQty, value: quoteQty};
       }
       if(this.gas){
         const gasBalance= balance[this.gas.base];
@@ -110,7 +109,7 @@ export default class ExchangeAccount{
   }
   getAvailableAsset(asset: string){
     if(this.balance[asset]){
-      return this.balance[asset];
+      return this.balance[asset].qty;
     }
     return 0;
   }
@@ -152,7 +151,7 @@ export default class ExchangeAccount{
         quoteToRelease[market.symbol]= {qty: 0, value: 0};
       }else{
         const expectedQuoteToRlease= totalQuoteToRelease*market.pct;
-        let qty= this.balance[market.base];
+        let qty= this.balance[market.base].qty;
         let value= qty*market.price;
         if(value>expectedQuoteToRlease){
           value= expectedQuoteToRlease;

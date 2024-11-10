@@ -14,8 +14,8 @@ describe("Test balance and order cost operations", () => {
   const account= accounts[0];
   account.markets.forEach(market => {
     market.price= 1000;
-    account.balance[market.base]= 200;
-    account.balance[market.quote]= 500;
+    account.balance[market.base]= {qty: 200, value: 0};
+    account.balance[market.quote]= {qty: 200, value: 0};
   });
   it("getAvailableBase should return all base if > 10", () => {
     account.markets.forEach(market => {
@@ -25,28 +25,28 @@ describe("Test balance and order cost operations", () => {
   it("getAvailableBase should return zero if < 10", () => {
     account.markets.forEach(market => {
       market.price= 0.01;
-      account.balance[market.base]= 200;
-      account.balance[market.quote]= 500;
+      account.balance[market.base].qty= 200;
+      account.balance[market.quote].qty= 500;
     });
     account.markets.forEach(market => {
       expect(account.getAvailableBase(market)).toEqual(0);
     });
   });
   it("simple case - all quote is available", () => {
-    account.balance["BTC"]= 0;
-    account.balance["ETH"]= 0;
-    account.balance["SOL"]= 0;
-    account.balance["USDT"]= 1000;
+    account.balance["BTC"]= {qty: 0, value: 0};
+    account.balance["ETH"]= {qty: 0, value: 0};
+    account.balance["SOL"]= {qty: 0, value: 0};
+    account.balance["USDT"]= {qty: 1000, value: 0};
     expect(account.getOrderCost(new Market("ETH", "USDT", 0.2, 200000))).toEqual(200);
     expect(account.getQuoteToAllocate(new Market("ETH", "USDT", 0.2, 200000))).toEqual(200);
-    account.balance["USDT"]= 10000000;
+    account.balance["USDT"].qty= 10000000;
     expect(account.getOrderCost(new Market("ETH", "USDT", 0.2, 200000))).toEqual(200000);
   });
   it("some assets are already bought", () => {
-    account.balance["BTC"]= 35;
-    account.balance["ETH"]= 0;
-    account.balance["SOL"]= 0;
-    account.balance["USDT"]= 600;
+    account.balance["BTC"].qty= 35;
+    account.balance["ETH"].qty= 0;
+    account.balance["SOL"].qty= 0;
+    account.balance["USDT"].qty= 600;
     account.markets= [];
     const ethusdtMarket= new Market("ETH", "USDT", 0.4, 200000);
     const btcusdtMarket= new Market("BTC", "USDT", 0.4, 200000);
@@ -60,8 +60,8 @@ describe("Test balance and order cost operations", () => {
     expect(account.getOrderCost(ethusdtMarket)).toEqual(400);
     expect(account.getOrderCost(solusdtMarket)).toEqual(200);
     expect(account.getOrderCost(btcusdtMarket)).toEqual(0);
-    account.balance["SOL"]= 33223;
-    account.balance["USDT"]= 400;
+    account.balance["SOL"].qty= 33223;
+    account.balance["USDT"].qty= 400;
     expect(account.getOrderCost(ethusdtMarket)).toEqual(400);
   });
 });
@@ -71,10 +71,10 @@ describe("Test release quote", () => {
   const accountConfigs: ExchangeAccountConfig[] = config.accounts;
   const accounts = accountConfigs.map(account => ExchangeAccount.fromConfig(account));
   const account= accounts[0];
-  account.balance["BTC"]= 1;
-  account.balance["ETH"]= 1;
-  account.balance["SOL"]= 1;
-  account.balance["USDT"]= 600;
+  account.balance["BTC"].qty= 1;
+  account.balance["ETH"].qty= 1;
+  account.balance["SOL"].qty= 1;
+  account.balance["USDT"].qty= 600;
   account.markets= [];
   const ethusdtMarket= new Market("ETH", "USDT", 0.4, 200000);
   const btcusdtMarket= new Market("BTC", "USDT", 0.4, 200000);

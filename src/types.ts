@@ -47,7 +47,10 @@ export type SignalParams= {
 }
 
 export type AccountBalance= {
-  [asset: string]: number
+  [asset: string]: {
+    qty: number
+    value: number
+  }
 }
 
 export type ReleaseQuoteRequest= {
