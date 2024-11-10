@@ -46,7 +46,7 @@ async function start(){
         logger.debug(`no market for ${asset}`, account.name);
         return;
       }
-      await account.processSignalForMarkets(asset, side, markets);
+      await account.processSignalForMarkets(side, markets);
       await Util.sleep(5000);
       await account.loadBalance();
       if (side === "sell") {

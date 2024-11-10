@@ -36,7 +36,7 @@ export default class ExchangeAccount{
       }
     }
   }
-  async processSignalForMarkets(asset: string, side: OrderSide, markets: Market[]){
+  async processSignalForMarkets(side: OrderSide, markets: Market[]){
     markets.forEach(async (market) => {
       const symbol = market.symbol;
       if (side === OrderSide.buy) {
@@ -152,7 +152,7 @@ export default class ExchangeAccount{
       if(!this.hasOpenPosition(market)){
         quoteToRelease[market.symbol]= {qty: 0, value: 0};
       }else{
-        const expectedQuoteToRlease= totalQuoteToRelease*market.pct;
+        const expectedQuoteToRlease= totalQuoteToRelease*(market.pct+0.01);
         let qty= this.balance[market.base].qty;
         let value= qty*market.price;
         if(value>expectedQuoteToRlease){
