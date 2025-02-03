@@ -4,6 +4,8 @@ export default class Signal{
 
   public asset: string;
   public side: OrderSide;
+  public tp?: number;
+  public sl?: number;
 
   constructor(params: SignalParams) {
     this.side= params.side;

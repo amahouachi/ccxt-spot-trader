@@ -38,7 +38,7 @@ async function start(){
       logger.error(`Invalid signal. ${signalError}`);
       return;
     }
-    const {asset,side}= signal;
+    const {asset,side, tp, sl}= signal;
     activeAccounts.forEach(async account => {
       const markets = account.findMarkets(asset);
       if(markets.length===0){
@@ -62,6 +62,9 @@ async function start(){
     let assetPrice= 20;
     if(assetUsdtMarket){
       assetPrice= Number((assetUsdtMarket.price*0.9).toFixed(2));
+    }
+    if(sl){
+      assetPrice= sl;
     }
     let telegramMessage= `${asset}/USDT\n${side} at current price\nSL ${assetPrice}`;
     if(side==='sell'){
