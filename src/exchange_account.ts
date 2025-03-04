@@ -1,22 +1,22 @@
 import Exchange from "./exchange";
 import {AccountBalance, ExchangeAccountConfig, OrderSide, QuoteToRelease} from "./types";
-import Signal from "./signal";
 import Market from './market';
 import { logger } from "./logger";
 import { Order } from "ccxt";
 import Gas from "./gas";
 import { Util } from "./util";
+import { TradeJournal } from "./journal";
 
 export default class ExchangeAccount{
 
   public balance: AccountBalance= {};
   public MIN_ORDER_QUOTE_QTY= 5;
 
-  constructor(public name: string, public active: boolean, public exchange: Exchange, public markets: Market[], public gas: Gas|undefined) {
+  constructor(public name: string, public active: boolean, public useJournal: boolean, public exchange: Exchange, public markets: Market[], public gas: Gas|undefined) {
   }
 
   static fromConfig(config: ExchangeAccountConfig){
-    return new ExchangeAccount(config.name, config.active, Exchange.fromConfig(config.exchange), Market.fromConfig(config.markets), config.gas?Gas.fromConfig(config.gas):undefined);
+    return new ExchangeAccount(config.name, config.active, config.useJournal||false, Exchange.fromConfig(config.exchange), Market.fromConfig(config.markets), config.gas?Gas.fromConfig(config.gas):undefined);
   }
   
   async refillGas(){
@@ -36,7 +36,7 @@ export default class ExchangeAccount{
       }
     }
   }
-  async processSignalForMarkets(side: OrderSide, markets: Market[]){
+  async processSignalForMarkets(side: OrderSide, markets: Market[]) : Promise<void>{
     markets.forEach(async (market) => {
       const symbol = market.symbol;
       if (side === OrderSide.buy) {

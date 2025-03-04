@@ -59,6 +59,9 @@ export class Pionex{
   amountToPrecision(symbol: string, amount: number): string{
     return this.decimalToPrecision(`${amount}`, 0, this.markets[symbol]['basePrecision']);
   }
+  priceToPrecision(symbol: string, price: number): string{
+    return `${price}`;
+  }
   async fetchBalance(){
     const timestamp= Date.now();
     const path= `/api/v1/account/balances?timestamp=${timestamp}`;

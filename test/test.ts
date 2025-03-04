@@ -1,12 +1,12 @@
 import {describe, it, expect} from '@jest/globals';
 
 import config from "./config.json";
-import { ExchangeAccountConfig, OrderSide } from '../src/types';
+import { ExchangeAccountConfig, OrderSide, Signal } from '../src/types';
 import ExchangeAccount from '../src/exchange_account';
 import Market from '../src/market';
-import Signal from '../src/signal';
 import { logger } from '../src/logger';
 import { Util } from '../src/util';
+import { TradeJournal } from '../src/journal';
 
 describe("Test balance and order cost operations", () => {
   const accountConfigs: ExchangeAccountConfig[] = config.accounts;

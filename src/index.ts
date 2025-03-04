@@ -1,11 +1,14 @@
 import { server } from "./server";
-import config from '../config.json';
+import configJson from '../config.json';
 import { logger } from "./logger";
-import { BuyRequest, ExchangeAccountConfig, OrderSide, ReleaseQuoteRequest } from "./types";
+import { BotConfig, BuyRequest, ExchangeAccountConfig, OrderSide, ReleaseQuoteRequest } from "./types";
 import ExchangeAccount from "./exchange_account";
 import { Util } from "./util";
-import Signal from "./signal";
+import {Signal} from "./types";
 import TelegramBot from 'node-telegram-bot-api';
+import { TradeJournal } from "./journal";
+
+const config: BotConfig = configJson;
 
 logger.configure({disableConsole: false, disableFile: false, level: 'debug', fileName: 'app.log', rootPath: '.'});
 
@@ -14,9 +17,9 @@ const accounts = accountConfigs.map(account => ExchangeAccount.fromConfig(accoun
 const activeAccounts= accounts.filter(account => account.active);
 
 async function start(){
-
-  const telegramBot = new TelegramBot(config.telegram.token);
   
+  const telegramBot = config.telegram?new TelegramBot(config.telegram.token):undefined;
+  const journal= config.journal?new TradeJournal(config.journal):undefined;
 
   for(const account of activeAccounts){
     await account.loadMarkets();
@@ -25,6 +28,9 @@ async function start(){
     await Util.sleep(500);
     await account.loadBalance();
     await Util.sleep(500);
+    if(account.useJournal && journal){
+      journal.start(account);
+    }
   }
   
   const endpoints= config.endpoints;
@@ -38,7 +44,7 @@ async function start(){
       logger.error(`Invalid signal. ${signalError}`);
       return;
     }
-    const {asset,side, tp, sl}= signal;
+    const {asset,side, tp, sl, price}= signal;
     activeAccounts.forEach(async account => {
       const markets = account.findMarkets(asset);
       if(markets.length===0){
@@ -66,11 +72,13 @@ async function start(){
     if(sl){
       assetPrice= sl;
     }
-    let telegramMessage= `${asset}/USDT\n${side} at current price\nSL ${assetPrice}`;
-    if(side==='sell'){
-      telegramMessage= `/close ${asset}/USDT`;
+    if(telegramBot){
+      let telegramMessage= `${asset}/USDT\n${side} at current price\nSL ${assetPrice}`;
+      if(side==='sell'){
+        telegramMessage= `/close ${asset}/USDT`;
+      }
+      telegramBot.sendMessage(config.telegram!.chatId, telegramMessage);
     }
-    telegramBot.sendMessage(config.telegram.chatId, telegramMessage);
   });
   server.addPostEndpoint(endpoints.releaseQuote, async (req: any, res: any) => {
     const request= req.body as ReleaseQuoteRequest;

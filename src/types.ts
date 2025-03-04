@@ -1,6 +1,30 @@
+export type BotConfig= {
+  endpoints: {
+    signal: string;
+    releaseQuote: string;
+    balances: string;
+  }
+  port: number;
+  telegram?:{
+    token: string;
+    chatId: string;
+  }
+  journal?: {
+    region: string;
+    endpoint: string;
+    credentials: {
+      accessKeyId: string;
+      secretAccessKey: string;
+    },
+    bucket: string;
+    schedule: string;
+  },
+  accounts: ExchangeAccountConfig[];
+}
 export type ExchangeAccountConfig= {
   name: string
   active: boolean
+  useJournal?: boolean;
   exchange: ExchangeConfig
   markets: MarketConfig[]
   gas?: GasConfig
@@ -71,4 +95,20 @@ export type SellRequest= {
   symbol: string
   qty?: number
   cost?: number
+}
+
+export type Trade= {
+  symbol: string;
+  opendate: string;
+  openprice: number;
+  closedate: string;
+  closeprice: number;
+  quantity: number;
+}
+export type Signal ={
+  asset: string;
+  side: OrderSide;
+  tp?: number;
+  sl?: number;
+  price?: number;
 }

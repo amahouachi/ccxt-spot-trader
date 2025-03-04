@@ -9,6 +9,16 @@
     "token": "",
     "chatId": ""
   },
+  "journal": {
+    "region": "your-region",
+    "endpoint": "https://s3.ovh.io",
+    "credentials": {
+      "accessKeyId": "e265982ec96149bc873f10ea215e2396",
+      "secretAccessKey": "8a867981fce54978ac9c6b44bca38df6"
+    },
+    "bucket": "bucket-name",
+    "schedule": "21 0,4,8,12,16,20 * * *"
+  },
   "accounts": [
     {
       "name": "zignaly",

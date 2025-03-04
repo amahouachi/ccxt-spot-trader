@@ -41,4 +41,7 @@ export default class Exchange{
   roundAmount(symbol: string, amount: number){
     return this._exchange.amountToPrecision(symbol,amount);
   }
+  roundPrice(symbol: string, price: number){
+    return Number(this._exchange.priceToPrecision(symbol, price));
+  }
 }
