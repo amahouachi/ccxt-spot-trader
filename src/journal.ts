@@ -107,19 +107,20 @@ export class TradeJournal {
    * Loops through all symbols in `account.markets` and aggregates trades.
    */
   private async fetchNewTradesFromExchange(
-    account: ExchangeAccount,
-    lastTradeDate: string | null
-  ): Promise<Trade[]> {
-    try {
+  account: ExchangeAccount,
+  lastTradeDate: string | null
+): Promise<Trade[]> {
+  try {
       logger.info(`Fetching completed orders from exchange for ${account.name} after ${lastTradeDate}`, "journal");
 
-      let allOrders: ccxt.Order[] = [];
       let limit = 1000;
 
-      // ✅ Loop through each symbol in account.markets
+      const groupedTrades: Trade[] = []; // ✅ Store all trades across symbols
+
       for (const market of account.markets) {
         const symbol = market.symbol;
         let sinceTimestamp = lastTradeDate ? new Date(lastTradeDate).getTime() : undefined;
+        let allOrders: ccxt.Order[] = []; // ✅ Store all orders for this symbol
 
         let fetchMore = true;
         while (fetchMore) {
@@ -133,56 +134,52 @@ export class TradeJournal {
             }
 
             allOrders.push(...orders);
-
-            // ✅ Update timestamp for pagination
-            sinceTimestamp = orders[orders.length - 1].timestamp + 1;
+            sinceTimestamp = orders[orders.length - 1].timestamp + 1; // ✅ Update pagination timestamp
           } catch (err: any) {
             logger.warn(`Error fetching orders for ${symbol}: ${err.message}`, "journal");
             continue; // Skip to the next symbol if an error occurs
           }
         }
-      }
 
-      if (allOrders.length === 0) {
-        logger.info(`No new orders found for ${account.name}`, "journal");
-        return [];
-      }
+        // ✅ Now that we have all orders, process them in a single pass
+        let openTrade: ccxt.Order | null = null;
+        let lastSellOrder: ccxt.Order | null = null;
 
-      // ✅ Step 1: Sort orders by symbol & timestamp
-      allOrders.sort((a, b) => (a.symbol > b.symbol ? 1 : a.symbol < b.symbol ? -1 : a.timestamp - b.timestamp));
+        for (const order of allOrders) {
+          if (order.side === "buy") {
+            // ✅ If we have an open buy and a sell, create a trade before storing new buy
+            if (openTrade && lastSellOrder) {
+              groupedTrades.push({
+                symbol: symbol,
+                opendate: new Date(openTrade.timestamp).toISOString(),
+                openprice: account.exchange.roundPrice(symbol, openTrade.average || openTrade.price),
+                closedate: new Date(lastSellOrder.timestamp).toISOString(),
+                closeprice: account.exchange.roundPrice(symbol, lastSellOrder.average || lastSellOrder.price),
+                quantity: openTrade.filled,
+              });
 
-      // ✅ Step 2: Group orders into trades
-      const groupedTrades: Trade[] = [];
-      const orderQueue: { [symbol: string]: ccxt.Order[]; } = {};
+              // ✅ Reset lastSellOrder because we just used it
+              lastSellOrder = null;
+            }
 
-      for (const order of allOrders) {
-        if (!orderQueue[order.symbol]) orderQueue[order.symbol] = [];
-
-        if (order.side === "buy") {
-          orderQueue[order.symbol].push(order);
-        } else if (order.side === "sell" && orderQueue[order.symbol].length > 0) {
-          const buyOrder = orderQueue[order.symbol].shift(); // Take the oldest buy order
-          if (buyOrder) {
-            groupedTrades.push({
-              symbol: buyOrder.symbol,
-              opendate: new Date(buyOrder.timestamp).toISOString(),
-              openprice: account.exchange.roundPrice(buyOrder.symbol, buyOrder.average || buyOrder.price),
-              closedate: new Date(order.timestamp).toISOString(), // Use the last sell order timestamp
-              closeprice: account.exchange.roundPrice(buyOrder.symbol, order.average || order.price),
-              quantity: buyOrder.filled, // Use buy quantity
-            });
+            // ✅ Store new buy order
+            openTrade = order;
+          } else if (order.side === "sell") {
+            // ✅ Always update lastSellOrder to ensure we only keep the latest one
+            lastSellOrder = order;
           }
-
-          // ✅ Keep only the last sell order, ignore previous sells
-          orderQueue[order.symbol] = [order];
         }
+
+        // ✅ Edge case: If a buy exists but no corresponding sell, ignore it
       }
 
-      logger.info(`Grouped ${groupedTrades.length} trades for ${account.name}`, "journal");
+      logger.info(`✅ Successfully processed ${groupedTrades.length} trades.`, "journal");
       return groupedTrades;
+
     } catch (err) {
       logger.error(`CCXT Error fetching closed orders for ${account.name}: ${JSON.stringify(err)}`, "journal");
       return [];
     }
   }
+
 }
