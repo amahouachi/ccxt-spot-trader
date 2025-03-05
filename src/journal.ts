@@ -157,8 +157,7 @@ export class TradeJournal {
                 closeprice: account.exchange.roundPrice(symbol, lastSellOrder.average || lastSellOrder.price),
                 quantity: openTrade.filled,
               });
-
-              // ✅ Reset lastSellOrder because we just used it
+              openTrade= null;
               lastSellOrder = null;
             }
 
@@ -168,6 +167,16 @@ export class TradeJournal {
             // ✅ Always update lastSellOrder to ensure we only keep the latest one
             lastSellOrder = order;
           }
+        }
+        if (openTrade && lastSellOrder) {
+          groupedTrades.push({
+            symbol: symbol,
+            opendate: new Date(openTrade.timestamp).toISOString(),
+            openprice: account.exchange.roundPrice(symbol, openTrade.average || openTrade.price),
+            closedate: new Date(lastSellOrder.timestamp).toISOString(),
+            closeprice: account.exchange.roundPrice(symbol, lastSellOrder.average || lastSellOrder.price),
+            quantity: openTrade.filled,
+          });
         }
 
         // ✅ Edge case: If a buy exists but no corresponding sell, ignore it
