@@ -145,6 +145,8 @@ export class TradeJournal {
         let openTrade: ccxt.Order | null = null;
         let lastSellOrder: ccxt.Order | null = null;
 
+        allOrders.sort((a,b) => a.timestamp - b.timestamp);
+
         for (const order of allOrders) {
           if (order.side === "buy") {
             // ✅ If we have an open buy and a sell, create a trade before storing new buy
