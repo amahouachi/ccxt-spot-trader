@@ -109,7 +109,7 @@ async synchronizeTrades(account: ExchangeAccount) {
       const groupedTrades: Trade[] = [];
 
       for (const market of account.markets) {
-        const symbol = market.symbol;
+        const symbol = market.symbol.replace('/','');
         let sinceTimestamp = lastTradeTimestamps[symbol] ? new Date(lastTradeTimestamps[symbol]).getTime() : undefined;
         let allOrders: ccxt.Order[] = [];
 
@@ -117,7 +117,7 @@ async synchronizeTrades(account: ExchangeAccount) {
         while (fetchMore) {
           try {
             //@ts-ignore
-            const orders = await account.exchange._exchange.fetchClosedOrders(symbol, sinceTimestamp, limit);
+            const orders = await account.exchange._exchange.fetchClosedOrders(market.symbol, sinceTimestamp, limit);
 
             if (orders.length === 0) {
               fetchMore = false;
