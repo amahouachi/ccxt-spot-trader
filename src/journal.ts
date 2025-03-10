@@ -110,7 +110,7 @@ async synchronizeTrades(account: ExchangeAccount) {
 
       for (const market of account.markets) {
         const symbol = market.symbol.replace('/','');
-        let sinceTimestamp = lastTradeTimestamps[symbol] ? new Date(lastTradeTimestamps[symbol]).getTime() : undefined;
+        let sinceTimestamp = lastTradeTimestamps[symbol] ? new Date(lastTradeTimestamps[symbol]).getTime()+1 : undefined;
         let allOrders: ccxt.Order[] = [];
 
         let fetchMore = true;
@@ -118,17 +118,13 @@ async synchronizeTrades(account: ExchangeAccount) {
           try {
             //@ts-ignore
             const orders = await account.exchange._exchange.fetchClosedOrders(market.symbol, sinceTimestamp, limit);
-
             if (orders.length === 0) {
-              fetchMore = false;
               break;
             }
-
             allOrders.push(...orders);
             sinceTimestamp = orders[orders.length - 1].timestamp + 1;
           } catch (err: any) {
             logger.warn(`Error fetching orders for ${symbol}: ${err.message}`, "journal");
-            continue;
           }
         }
 
@@ -181,6 +177,4 @@ async synchronizeTrades(account: ExchangeAccount) {
       return [];
     }
   }
-
-
 }
