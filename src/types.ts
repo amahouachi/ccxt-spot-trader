@@ -2,6 +2,7 @@ export type BotConfig= {
   endpoints: {
     signal: string;
     releaseQuote: string;
+    recordTransfer: string;
     balances: string;
   }
   port: number;

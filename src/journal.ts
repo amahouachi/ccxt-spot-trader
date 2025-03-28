@@ -4,10 +4,8 @@ import {
   GetObjectCommand,
   PutObjectCommand,
 } from "@aws-sdk/client-s3";
-import { Trade } from "./types";
 import { logger } from "./logger";
 import ExchangeAccount from "./exchange_account";
-import * as ccxt from 'ccxt';
 
 export type TradeJournalOptions = {
   region: string;
@@ -37,13 +35,87 @@ export class TradeJournal {
   start(account: ExchangeAccount) {
     cron.schedule(this.schedule, async () => {
       try {
-        await this.synchronizeTrades(account);
+        await this.takeEquitySnapshot(account);
       } catch (error) {
         logger.error(`Error during trade synchronization: ${error}`, 'journal');
       }
     });
   }
+  async takeEquitySnapshot( account: ExchangeAccount) {
+    try {
+      const today = new Date().toISOString().slice(0, 10); // YYYY-MM-DD
 
+      await account.loadBalance();
+      await account.loadMarketPrices();
+      const {balance, markets}= account;
+
+      //if quote!=USDT??
+      const totalEquity = balance["USDT"].qty + balance["USDT"].value;
+
+      const equityCsvLine = `${today},${totalEquity.toFixed(2)}\n`;
+      const equityKey = `equity/${account.name}/equity.csv`;
+
+      await this.appendLineToCsv(equityKey, equityCsvLine);
+
+      const benchmarkKey = `equity/${account.name}/benchmark.csv`;
+      for (const m of markets) {
+        const row = `${today},${m.symbol.replace("/", "")},${account.exchange.roundPrice(m.symbol,m.price)}\n`;
+        await this.appendLineToCsv(benchmarkKey, row);
+      }
+
+      logger.info(`Equity and benchmark snapshot saved for ${today}`, "journal");
+    } catch (error) {
+      logger.error(`Error in snapshotEquityAndBenchmark: ${error}`, "journal");
+    }
+  }
+
+  async recordTransfer(
+    account: ExchangeAccount,
+    type: "deposit" | "withdrawal",
+    amount: number,
+    date?: string
+  ) {
+    const formattedDate = date
+      ? new Date(date).toISOString().slice(0, 10)
+      : new Date().toISOString().slice(0, 10);
+
+    const line = `${formattedDate},${type},${amount}\n`;
+    const key = `equity/${account.name}/transfers.csv`;
+
+    try {
+      await this.appendLineToCsv(key, line);
+      logger.info(`✅ Recorded ${type} of ${amount} on ${formattedDate} for ${account.name}`, "journal");
+    } catch (err) {
+      logger.error(`❌ Failed to record transfer: ${err}`, "journal");
+      throw err;
+    }
+  }
+
+
+  async appendLineToCsv(key: string, line: string) {
+    try {
+      let existing = "";
+      try {
+        const res = await this.s3.send(new GetObjectCommand({ Bucket: this.bucket, Key: key }));
+        existing = await res.Body?.transformToString() || "";
+      } catch (err: any) {
+        if (err.Code !== "NoSuchKey") throw err;
+      }
+
+      const content = existing ? existing.trimEnd() + "\n" + line.trimEnd() : line.trimEnd();
+
+      await this.s3.send(new PutObjectCommand({
+        Bucket: this.bucket,
+        Key: key,
+        Body: content,
+        ContentType: "text/csv",
+      }));
+    } catch (err) {
+      throw new Error(`Failed to append line to CSV ${key}: ${err}`);
+    }
+  }
+
+  /*
 async synchronizeTrades(account: ExchangeAccount) {
     const s3TradesFileKey = `trades/${account.name}/live_trades.csv`;
     let existingTrades: string[] = [];
@@ -94,10 +166,6 @@ async synchronizeTrades(account: ExchangeAccount) {
 }
 
 
-  /**
-   * Fetches new completed buy/sell orders for an account using CCXT.
-   * Loops through all symbols in `account.markets` and aggregates trades.
-   */
   private async fetchNewTradesFromExchange(
     account: ExchangeAccount,
     lastTradeTimestamps: Record<string, string>
@@ -176,5 +244,5 @@ async synchronizeTrades(account: ExchangeAccount) {
       logger.error(`CCXT Error fetching closed orders for ${account.name}: ${JSON.stringify(err)}`, "journal");
       return [];
     }
-  }
+  }*/
 }

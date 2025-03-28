@@ -2,6 +2,7 @@
   "endpoints": {
     "signal": "/signal",
     "releaseQuote": "/release-quote",
+    "recordTransfer": "/record-transfer",
     "balances": "/balances"
   },
   "port": 3000,

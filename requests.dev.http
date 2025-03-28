@@ -7,6 +7,15 @@ Content-Type: application/json
 "side": "buy"
 }
 
+### Record withdrawl
+POST http://localhost:3000/record-transfer
+Content-Type: application/json
+
+{
+"type": "deposit",
+"amount": 300,
+"account": "binance_sub1" 
+}
 ### Sell signal
 POST http://localhost:3000/signal
 Content-Type: application/json

@@ -15,11 +15,11 @@ logger.configure({disableConsole: false, disableFile: false, level: 'debug', fil
 const accountConfigs: ExchangeAccountConfig[] = config.accounts;
 const accounts = accountConfigs.map(account => ExchangeAccount.fromConfig(account));
 const activeAccounts= accounts.filter(account => account.active);
+const journal= config.journal?new TradeJournal(config.journal):undefined;
 
 async function start(){
   
   const telegramBot = config.telegram?new TelegramBot(config.telegram.token):undefined;
-  const journal= config.journal?new TradeJournal(config.journal):undefined;
 
   for(const account of activeAccounts){
     await account.loadMarkets();
@@ -101,6 +101,37 @@ async function start(){
       res.json({quoteToRelease, balance: account.balance});
     }
     res.end();
+  });
+  server.addPostEndpoint(endpoints.recordTransfer, async (req: any, res: any) => {
+    if(!journal){
+      res.status(400).json({ error: "Journal not configured" });
+      return;
+    }
+    const request = req.body as {
+      account: string;
+      type: "deposit" | "withdrawal";
+      amount: number;
+      date?: string;
+    };
+
+    logger.info(`Received transfer record request: ${JSON.stringify(request)}`);
+
+    const account = activeAccounts.find((a) => a.name === request.account);
+    if (!account) {
+      res.status(404).json({ error: "Account not found" });
+      return;
+    }
+    if(!account.useJournal){
+      res.status(400).json({ error: "Journal not active for this account" });
+      return;
+    }
+
+    try {
+      await journal.recordTransfer(account, request.type, request.amount, request.date);
+      res.json({ status: "ok", recorded: { ...request } });
+    } catch (err) {
+      res.status(500).json({ error: "Failed to record transfer" });
+    }
   });
   server.addGetEndpoint(endpoints.balances, async (req: any, res: any) => {
     const balances= [];
