@@ -39,7 +39,7 @@ export class TradeJournal {
       } catch (error) {
         logger.error(`Error during trade synchronization: ${error}`, 'journal');
       }
-    });
+    },{timezone: 'UTC'});
   }
   async takeEquitySnapshot( account: ExchangeAccount) {
     try {
