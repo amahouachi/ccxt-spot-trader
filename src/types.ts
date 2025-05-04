@@ -6,7 +6,6 @@ export type BotConfig= {
     releaseQuote: string;
     recordTransfer: string;
     balances: string;
-    refreshWebhooks: string;
   }
   port: number;
   telegram?:{

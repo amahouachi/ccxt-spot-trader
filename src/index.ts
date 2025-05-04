@@ -141,15 +141,6 @@ async function start(){
       res.status(500).json({ error: "Failed to record transfer" });
     }
   });
-  server.addPostEndpoint(endpoints.refreshWebhooks, async (req: any, res: any) => {
-    if(!forwarder){
-      res.status(400).json({ error: "Forwarder not configured" });
-      return;
-    }
-    logger.info(`Received refresh webhook request from ${req.ip}`);
-    forwarder.loadWebhooks();
-    res.json({ status: "ok" });
-  });
   server.addGetEndpoint(endpoints.balances, async (req: any, res: any) => {
     const balances= [];
     for(const account of activeAccounts){

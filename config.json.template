@@ -3,8 +3,7 @@
     "signal": "/signal",
     "releaseQuote": "/release-quote",
     "recordTransfer": "/record-transfer",
-    "balances": "/balances",
-    "refreshWebhooks": "/refresh-webhooks"
+    "balances": "/balances"
   },
   "port": 3000,
   "telegram": {
