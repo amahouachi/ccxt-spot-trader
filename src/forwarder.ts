@@ -2,6 +2,7 @@ import { S3Client, GetObjectCommand } from "@aws-sdk/client-s3";
 import { ForwarderOptions, Signal } from "./types";
 import cron from "node-cron";
 import { logger } from "./logger";
+import { fetch, Agent } from 'undici';
 
 export class Forwarder {
   s3: S3Client;
@@ -64,7 +65,9 @@ export class Forwarder {
   sendSignal(signal: Signal): void {
     const now = new Date();
     let sentCount = 0;
-
+    const agent = new Agent({
+      connect: { rejectUnauthorized: false }
+    });
     for (const webhook of this.webhooks) {
       const url = webhook.url;
       const expiresAt = new Date(webhook.expiresAt);
@@ -75,6 +78,7 @@ export class Forwarder {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify(signal),
+        dispatcher: agent
       }).catch((error: any) => {
         logger.error(`Failed to send signal to ${url} : ${JSON.stringify(error)}`, 'forwarder');
       });
