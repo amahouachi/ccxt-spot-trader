@@ -7,6 +7,8 @@ import { Util } from "./util";
 import {Signal} from "./types";
 import TelegramBot from 'node-telegram-bot-api';
 import { TradeJournal } from "./journal";
+import { S3Client } from "@aws-sdk/client-s3";
+import { Forwarder } from "./forwarder";
 
 const config: BotConfig = configJson;
 
@@ -15,7 +17,9 @@ logger.configure({disableConsole: false, disableFile: false, level: 'debug', fil
 const accountConfigs: ExchangeAccountConfig[] = config.accounts;
 const accounts = accountConfigs.map(account => ExchangeAccount.fromConfig(account));
 const activeAccounts= accounts.filter(account => account.active);
-const journal= config.journal?new TradeJournal(config.journal):undefined;
+const s3= config.s3?new S3Client(config.s3):undefined;
+const journal= (config.journal && s3)?new TradeJournal(s3, config.journal):undefined;
+const forwarder= (config.forwarder && s3)?new Forwarder(s3, config.forwarder):undefined;
 
 async function start(){
   
@@ -30,6 +34,10 @@ async function start(){
     await Util.sleep(500);
     if(account.useJournal && journal){
       journal.start(account);
+    }
+    if(forwarder){
+      await forwarder.loadWebhooks();
+      forwarder.scheduleWebhooksPoll();
     }
   }
   
@@ -132,6 +140,15 @@ async function start(){
     } catch (err) {
       res.status(500).json({ error: "Failed to record transfer" });
     }
+  });
+  server.addPostEndpoint(endpoints.refreshWebhooks, async (req: any, res: any) => {
+    if(!forwarder){
+      res.status(400).json({ error: "Forwarder not configured" });
+      return;
+    }
+    logger.info(`Received refresh webhook request from ${req.ip}`);
+    forwarder.loadWebhooks();
+    res.json({ status: "ok" });
   });
   server.addGetEndpoint(endpoints.balances, async (req: any, res: any) => {
     const balances= [];

@@ -1,25 +1,21 @@
+import { S3Client } from "@aws-sdk/client-s3";
+
 export type BotConfig= {
   endpoints: {
     signal: string;
     releaseQuote: string;
     recordTransfer: string;
     balances: string;
+    refreshWebhooks: string;
   }
   port: number;
   telegram?:{
     token: string;
     chatId: string;
-  }
-  journal?: {
-    region: string;
-    endpoint: string;
-    credentials: {
-      accessKeyId: string;
-      secretAccessKey: string;
-    },
-    bucket: string;
-    schedule: string;
   },
+  s3?: S3Options,
+  journal?: TradeJournalOptions,
+  forwarder?: ForwarderOptions,
   accounts: ExchangeAccountConfig[];
 }
 export type ExchangeAccountConfig= {
@@ -113,3 +109,20 @@ export type Signal ={
   sl?: number;
   price?: number;
 }
+export type S3Options= {
+  region: string;
+  endpoint: string;
+  credentials: {
+    accessKeyId: string;
+    secretAccessKey: string;
+  };
+};
+export type TradeJournalOptions = {
+  bucket: string;
+  schedule: string;
+};
+export type ForwarderOptions = {
+  bucket: string;
+  webhooksKey: string;
+  refreshSchedule: string;
+};

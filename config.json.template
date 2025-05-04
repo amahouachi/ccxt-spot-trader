@@ -3,22 +3,29 @@
     "signal": "/signal",
     "releaseQuote": "/release-quote",
     "recordTransfer": "/record-transfer",
-    "balances": "/balances"
+    "balances": "/balances",
+    "refreshWebhooks": "/refresh-webhooks"
   },
   "port": 3000,
   "telegram": {
     "token": "",
     "chatId": ""
   },
-  "journal": {
+  "s3": {
     "region": "your-region",
-    "endpoint": "https://s3.ovh.io",
     "credentials": {
       "accessKeyId": "xxx",
       "secretAccessKey": "yyy"
-    },
+    }
+  },
+  "journal": {
     "bucket": "bucket-name",
     "schedule": "21 0,4,8,12,16,20 * * *"
+  },
+  "forwarder": {
+    "bucket": "bucket-name",
+    "webhooksKey": "folder/webhooks.json",
+    "refreshSchedule": "21 0,4,8,12,16,20 * * *"
   },
   "accounts": [
     {

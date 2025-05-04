@@ -6,29 +6,16 @@ import {
 } from "@aws-sdk/client-s3";
 import { logger } from "./logger";
 import ExchangeAccount from "./exchange_account";
+import { TradeJournalOptions } from "./types";
 
-export type TradeJournalOptions = {
-  region: string;
-  endpoint: string;
-  credentials: {
-    accessKeyId: string;
-    secretAccessKey: string;
-  };
-  bucket: string;
-  schedule: string;
-};
 
 export class TradeJournal {
   s3: S3Client;
   bucket: string;
   schedule: string;
 
-  constructor(options: TradeJournalOptions) {
-    this.s3 = new S3Client({
-      region: options.region,
-      endpoint: options.endpoint,
-      credentials: options.credentials,
-    });
+  constructor(s3: S3Client, options: TradeJournalOptions) {
+    this.s3 = s3;
     this.bucket = options.bucket;
     this.schedule = options.schedule;
   }
