@@ -35,10 +35,10 @@ async function start(){
     if(account.useJournal && journal){
       journal.start(account);
     }
-    if(forwarder){
-      await forwarder.loadWebhooks();
-      forwarder.scheduleWebhooksPoll();
-    }
+  }
+  if (forwarder) {
+    await forwarder.loadWebhooks();
+    forwarder.scheduleWebhooksPoll();
   }
   
   const endpoints= config.endpoints;
