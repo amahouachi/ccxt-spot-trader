@@ -110,7 +110,6 @@ export type Signal ={
 }
 export type S3Options= {
   region: string;
-  endpoint: string;
   credentials: {
     accessKeyId: string;
     secretAccessKey: string;
