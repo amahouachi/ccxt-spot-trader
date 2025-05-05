@@ -1,7 +1,7 @@
 import { server } from "./server";
 import configJson from '../config.json';
 import { logger } from "./logger";
-import { BotConfig, BuyRequest, ExchangeAccountConfig, OrderSide, ReleaseQuoteRequest } from "./types";
+import { BotConfig, ExchangeAccountConfig, ReleaseQuoteRequest } from "./types";
 import ExchangeAccount from "./exchange_account";
 import { Util } from "./util";
 import {Signal} from "./types";
@@ -86,6 +86,9 @@ async function start(){
         telegramMessage= `/close ${asset}/USDT`;
       }
       telegramBot.sendMessage(config.telegram!.chatId, telegramMessage);
+    }
+    if(forwarder){
+      forwarder.sendSignal(signal);
     }
   });
   server.addPostEndpoint(endpoints.releaseQuote, async (req: any, res: any) => {

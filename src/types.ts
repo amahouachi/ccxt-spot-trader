@@ -37,7 +37,7 @@ export type ExchangeConfig= {
   config: {
     apiKey: string,
     secret: string,
-    [key: string]: string|number|boolean
+    [key: string]: string|number|boolean|undefined
   }
 }
 export type QuoteToRelease= {

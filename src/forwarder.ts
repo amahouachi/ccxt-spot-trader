@@ -9,7 +9,7 @@ export class Forwarder {
   bucket: string;
   webhooksKey: string;
   refreshSchedule: string;
-  webhooks: {url: string, expiresAt: string}[];
+  webhooks: {url: string, expiresAt: string, trialExpiresAt: string}[];
 
   constructor(s3: S3Client, options: ForwarderOptions) {
     this.s3 = s3;
@@ -64,27 +64,33 @@ export class Forwarder {
   }
   sendSignal(signal: Signal): void {
     const now = new Date();
-    let sentCount = 0;
-    const agent = new Agent({
-      connect: { rejectUnauthorized: false }
-    });
+    const agent = new Agent({ connect: { rejectUnauthorized: false } });
     for (const webhook of this.webhooks) {
-      const url = webhook.url;
-      const expiresAt = new Date(webhook.expiresAt);
-      if (expiresAt <= now) {
-        continue;
-      }
-      fetch(url, {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify(signal),
-        dispatcher: agent
-      }).catch((error: any) => {
-        logger.error(`Failed to send signal to ${url} : ${JSON.stringify(error)}`, 'forwarder');
-      });
-      sentCount++;
+      const { url, expiresAt, trialExpiresAt } = webhook;
+      const subscribed= new Date(expiresAt) > now;
+      const isTrial= !subscribed && new Date(trialExpiresAt||now.toISOString()) > now;
+      if (!subscribed && !isTrial) continue;
+      const delay = isTrial ? 15 * 60 * 1000 : 0;
+      setTimeout(() => {
+        const controller = new AbortController();
+        const timeout = setTimeout(() => controller.abort(), 3000);
+        fetch(url, {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify(signal),
+          dispatcher: agent,
+          signal: controller.signal
+        })
+          .then(() => {
+            logger.debug(`Signal successfully sent to ${url}`);
+          })
+          .catch((error: any) => {
+            logger.error(`Failed to send signal to ${url}: ${error.message}`, 'forwarder');
+          })
+          .finally(() => clearTimeout(timeout));
+      }, delay);
     }
-    logger.debug(`Signal dispatched to ${sentCount} webhook(s)`);
   }
+
 
 }
