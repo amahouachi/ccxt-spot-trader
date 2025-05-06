@@ -24,6 +24,7 @@ export class Forwarder {
     try{
       this.privateKey = fs.readFileSync(path.resolve(__dirname, '../signal-signature-private-key.pem'), 'utf-8');
     }catch(e){
+      logger.warn(`Signal signature private key not found`);
     }
   }
   scheduleWebhooksPoll() {
