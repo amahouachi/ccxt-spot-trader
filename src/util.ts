@@ -1,4 +1,5 @@
 import { OrderSide } from "./types";
+import crypto from 'crypto';
 
 export const Util= {
 
@@ -26,6 +27,12 @@ export const Util= {
   },
   splitSymbol(symbol: string){
     return symbol.split('/');
+  },
+  signPayload(payload: string, privateKey: string) {
+    const sign = crypto.createSign('RSA-SHA256');
+    sign.update(payload);
+    sign.end();
+    return sign.sign(privateKey, 'base64');
   }
 
 }

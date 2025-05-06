@@ -3,11 +3,15 @@ import { ForwarderOptions, Signal } from "./types";
 import cron from "node-cron";
 import { logger } from "./logger";
 import { fetch, Agent } from 'undici';
+import path from "path";
+import fs from "fs";
+import { Util } from "./util";
 
 export class Forwarder {
   s3: S3Client;
   bucket: string;
   webhooksKey: string;
+  privateKey: string= '';
   refreshSchedule: string;
   webhooks: {url: string, expiresAt: string, trialExpiresAt: string}[];
 
@@ -17,6 +21,10 @@ export class Forwarder {
     this.webhooksKey= options.webhooksKey;
     this.refreshSchedule = options.refreshSchedule;
     this.webhooks= [];
+    try{
+      this.privateKey = fs.readFileSync(path.resolve(__dirname, '../signal-signature-private-key.pem'), 'utf-8');
+    }catch(e){
+    }
   }
   scheduleWebhooksPoll() {
     cron.schedule(this.refreshSchedule, async () => {
@@ -65,6 +73,8 @@ export class Forwarder {
   sendSignal(signal: Signal): void {
     const now = new Date();
     const agent = new Agent({ connect: { rejectUnauthorized: false } });
+    const body= JSON.stringify(signal);
+    const signature = this.privateKey!==''?Util.signPayload(body, this.privateKey):'';
     for (const webhook of this.webhooks) {
       const { url, expiresAt, trialExpiresAt } = webhook;
       const subscribed= new Date(expiresAt) > now;
@@ -73,11 +83,14 @@ export class Forwarder {
       const delay = isTrial ? 15 * 60 * 1000 : 0;
       setTimeout(() => {
         const controller = new AbortController();
-        const timeout = setTimeout(() => controller.abort(), 3000);
+        const timeout = setTimeout(() => controller.abort(), 5000);
         fetch(url, {
           method: "POST",
-          headers: { "Content-Type": "application/json" },
-          body: JSON.stringify(signal),
+          headers: { 
+            "Content-Type": "application/json" ,
+            "X-Signal-Signature": signature 
+          },
+          body,
           dispatcher: agent,
           signal: controller.signal
         })
