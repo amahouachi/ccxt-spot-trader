@@ -1,3 +1,4 @@
+import { Readable } from "stream";
 import { OrderSide } from "./types";
 import crypto from 'crypto';
 
@@ -33,6 +34,11 @@ export const Util= {
     sign.update(payload);
     sign.end();
     return sign.sign(privateKey, 'base64');
+  },
+  async streamToString(stream: Readable): Promise<string> {
+    const chunks: any[] = [];
+    for await (const chunk of stream) chunks.push(chunk);
+    return Buffer.concat(chunks).toString("utf-8");
   }
 
 }

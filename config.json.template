@@ -24,7 +24,9 @@
   "forwarder": {
     "bucket": "bucket-name",
     "webhooksKey": "folder/webhooks.json",
-    "refreshSchedule": "21 0,4,8,12,16,20 * * *"
+    "signalsKey": "folder/webhooks.json",
+    "webhooksPollSchedule": "21 0,4,8,12,16,20 * * *",
+    "signalsUploadSchedule": "3,13,23,33,43,53 * * * *"
   },
   "accounts": [
     {

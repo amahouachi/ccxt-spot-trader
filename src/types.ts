@@ -122,5 +122,7 @@ export type TradeJournalOptions = {
 export type ForwarderOptions = {
   bucket: string;
   webhooksKey: string;
-  refreshSchedule: string;
+  signalsKey: string;
+  webhooksPollSchedule: string;
+  signalsUploadSchedule: string;
 };

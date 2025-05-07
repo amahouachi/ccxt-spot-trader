@@ -1,4 +1,4 @@
-import { S3Client, GetObjectCommand } from "@aws-sdk/client-s3";
+import { S3Client, GetObjectCommand, PutObjectCommand } from "@aws-sdk/client-s3";
 import { ForwarderOptions, Signal } from "./types";
 import cron from "node-cron";
 import { logger } from "./logger";
@@ -6,29 +6,87 @@ import { fetch, Agent } from 'undici';
 import path from "path";
 import fs from "fs";
 import { Util } from "./util";
+import { Readable } from "stream";
 
 export class Forwarder {
   s3: S3Client;
   bucket: string;
   webhooksKey: string;
+  signalsKey: string;
   privateKey: string= '';
-  refreshSchedule: string;
-  webhooks: {url: string, expiresAt: string, trialExpiresAt: string}[];
+  webhooksPollSchedule: string;
+  signalsUploadSchedule: string;
+  webhooks: {url: string, expiresAt: string, trialExpiresAt: string}[]= [];
+  signals: { asset: string; side: string; createdAt: string }[] = [];
+  signalsFile!: string;
 
   constructor(s3: S3Client, options: ForwarderOptions) {
     this.s3 = s3;
     this.bucket = options.bucket;
     this.webhooksKey= options.webhooksKey;
-    this.refreshSchedule = options.refreshSchedule;
-    this.webhooks= [];
+    this.signalsKey= options.signalsKey;
+    this.webhooksPollSchedule = options.webhooksPollSchedule;
+    this.signalsUploadSchedule = options.signalsUploadSchedule;
+  }
+  async start(){
+    this.signalsFile= path.resolve(__dirname, "../signals.csv");
     try{
       this.privateKey = fs.readFileSync(path.resolve(__dirname, '../signal-signature-private-key.pem'), 'utf-8');
     }catch(e){
       logger.warn(`Signal signature private key not found`);
     }
+    await this.loadWebhooks();
+    await this.loadSignals();
+    this.scheduleWebhooksPoll();
+    this.scheduleSignalsUpload();
+  }
+  async loadSignals() {
+    try {
+      const res = await this.s3.send(new GetObjectCommand({ Bucket: this.bucket, Key: this.signalsKey }));
+      const content = await Util.streamToString(res.Body as Readable);
+      fs.writeFileSync(this.signalsFile, content, "utf-8");
+      logger.debug("Downloaded signals.csv from S3.");
+    } catch (err: any) {
+      if (err.name === "NoSuchKey" || err.$metadata?.httpStatusCode === 404) {
+        fs.writeFileSync(this.signalsFile, "", "utf-8");
+        logger.debug("No signals.csv found, created new local file.");
+      } else {
+        logger.error(err.message);
+      }
+    }
+  }
+  scheduleSignalsUpload() {
+    cron.schedule(this.signalsUploadSchedule, async () => {
+      if (this.signals.length === 0) {
+        return;
+      }
+      logger.debug(`Flushing ${this.signals.length} signals...`, 'forwarder');
+      // Format signals as CSV lines without header
+      const csvLines = this.signals
+        .map((s: { asset: string; side: string; createdAt: string; }) =>
+          `${s.asset},${s.side},${s.createdAt}`
+        )
+        .join("\n");
+
+      // Append to local file
+      fs.appendFileSync(this.signalsFile, `${csvLines}\n`, "utf-8");
+
+      // Upload updated file to S3
+      const body = fs.readFileSync(this.signalsFile);
+      await this.s3.send(
+        new PutObjectCommand({
+          Bucket: this.bucket,
+          Key: this.signalsKey,
+          Body: body,
+          ContentType: "text/csv",
+        })
+      );
+      logger.debug("Uploaded updated signals.csv to S3.", 'forwarder');
+      this.signals = [];
+    });
   }
   scheduleWebhooksPoll() {
-    cron.schedule(this.refreshSchedule, async () => {
+    cron.schedule(this.webhooksPollSchedule, async () => {
       try {
         await this.loadWebhooks();
       } catch (error) {
@@ -104,7 +162,6 @@ export class Forwarder {
           .finally(() => clearTimeout(timeout));
       }, delay);
     }
+    this.signals.push({asset: signal.asset, side: signal.side, createdAt: now.toISOString()});
   }
-
-
 }

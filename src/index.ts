@@ -37,8 +37,7 @@ async function start(){
     }
   }
   if (forwarder) {
-    await forwarder.loadWebhooks();
-    forwarder.scheduleWebhooksPoll();
+    await forwarder.start();
   }
   
   const endpoints= config.endpoints;
