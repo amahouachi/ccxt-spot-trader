@@ -95,6 +95,7 @@ export class Forwarder {
       }
     }, { timezone: 'UTC' });
   }
+
   async loadWebhooks(): Promise<void> {
     logger.info(`Loading webhooks from S3`, 'forwarder');
 
@@ -112,9 +113,11 @@ export class Forwarder {
       const body = await response.Body.transformToString();
       const parsedWebhooks = JSON.parse(body);
 
-      if (!Array.isArray(parsedWebhooks)) throw new Error("Invalid JSON format: expected array");
+      if (!Array.isArray(parsedWebhooks)) {
+        throw new Error("Invalid JSON format: expected array");
+      }
 
-      logger.debug(`Parsed ${parsedWebhooks.length} webhook entries`, 'forwarder');
+      logger.debug(`Parsed ${parsedWebhooks.length} webhook entries`);
 
       const now = new Date();
 
@@ -126,16 +129,17 @@ export class Forwarder {
 
       this.webhooksEtag = response.ETag?.replace(/"/g, "") || null;
 
-      logger.info(`${this.webhooks.length} valid webhook(s) loaded`, 'forwarder');
-
+      logger.info(`${this.webhooks.length} valid webhook(s) loaded`);
     } catch (err: any) {
-      if (err.name === "NotModified") {
-        logger.info(`Webhooks not modified — using cached version`, 'forwarder');
-      } else {
-        logger.error(`Failed to load webhooks from S3: ${JSON.stringify(err)}`, 'forwarder');
+      if (err?.$metadata?.httpStatusCode === 304) {
+        logger.info("Webhooks not modified — using cached version", 'forwarder');
+        return;
       }
+
+      logger.error(`Failed to load webhooks from S3: ${JSON.stringify(err)}`, 'forwarder');
     }
   }
+
   sendSignal(signal: Signal): void {
     const now = new Date();
     const agent = new Agent({ connect: { rejectUnauthorized: false } });
