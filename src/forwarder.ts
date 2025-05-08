@@ -121,10 +121,15 @@ export class Forwarder {
 
       const now = new Date();
 
-      this.webhooks = parsedWebhooks.filter(({ url, expiresAt }) => {
+      this.webhooks = parsedWebhooks.filter(({ url, expiresAt, trialExpiresAt }) => {
         if (typeof url !== "string" || !url.startsWith("http")) return false;
-        const exp = new Date(expiresAt);
-        return !isNaN(exp.getTime()) && exp >= now;
+        const subscribed = new Date(expiresAt) > now;
+        const isTrial = !subscribed && new Date(trialExpiresAt || now.toISOString()) > now;
+        if (!subscribed && !isTrial){
+          return false;
+        }else{
+          return true;
+        }
       });
 
       this.webhooksEtag = response.ETag?.replace(/"/g, "") || null;
