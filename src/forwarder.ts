@@ -19,6 +19,7 @@ export class Forwarder {
   webhooks: {url: string, expiresAt: string, trialExpiresAt: string}[]= [];
   signals: { asset: string; side: string; createdAt: string }[] = [];
   signalsFile!: string;
+  private webhooksEtag: string | null = null;
 
   constructor(s3: S3Client, options: ForwarderOptions) {
     this.s3 = s3;
@@ -92,12 +93,18 @@ export class Forwarder {
       } catch (error) {
         logger.error(`Error during trade synchronization: ${JSON.stringify(error)}`, 'forwarder');
       }
-    },{timezone: 'UTC'});
+    }, { timezone: 'UTC' });
   }
   async loadWebhooks(): Promise<void> {
     logger.info(`Loading webhooks from S3`, 'forwarder');
+
     try {
-      const command = new GetObjectCommand({ Bucket: this.bucket, Key: this.webhooksKey });
+      const command = new GetObjectCommand({
+        Bucket: this.bucket,
+        Key: this.webhooksKey,
+        ...(this.webhooksEtag && { IfNoneMatch: this.webhooksEtag }),
+      });
+
       const response = await this.s3.send(command);
 
       if (!response.Body) throw new Error("No file content received");
@@ -107,26 +114,26 @@ export class Forwarder {
 
       if (!Array.isArray(parsedWebhooks)) throw new Error("Invalid JSON format: expected array");
 
-      logger.debug(`Parsed ${parsedWebhooks.length} webhook entries`);
+      logger.debug(`Parsed ${parsedWebhooks.length} webhook entries`, 'forwarder');
 
       const now = new Date();
 
-      this.webhooks = parsedWebhooks.filter(({url,expiresAt}) => {
-        // Check webhook is a valid URL string
-        if (typeof url !== "string" || !url.startsWith("http")) {
-          return false;
-        }
-        // Check expiresAt is a valid date and not in the past
+      this.webhooks = parsedWebhooks.filter(({ url, expiresAt }) => {
+        if (typeof url !== "string" || !url.startsWith("http")) return false;
         const exp = new Date(expiresAt);
-        if (isNaN(exp.getTime()) || exp < now) {
-          return false;
-        }
-        return true;
+        return !isNaN(exp.getTime()) && exp >= now;
       });
 
-      logger.info(`${this.webhooks.length} valid webhook(s) loaded`);
-    } catch (error) {
-      logger.error(`Failed to load webhooks from S3: ${JSON.stringify(error)}`, 'forwarder');
+      this.webhooksEtag = response.ETag?.replace(/"/g, "") || null;
+
+      logger.info(`${this.webhooks.length} valid webhook(s) loaded`, 'forwarder');
+
+    } catch (err: any) {
+      if (err.name === "NotModified") {
+        logger.info(`Webhooks not modified — using cached version`, 'forwarder');
+      } else {
+        logger.error(`Failed to load webhooks from S3: ${JSON.stringify(err)}`, 'forwarder');
+      }
     }
   }
   sendSignal(signal: Signal): void {
