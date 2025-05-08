@@ -44,7 +44,7 @@ async function start(){
 
   server.addPostEndpoint(endpoints.signal, async (req: any, res: any) => {
     const signal= req.body as Signal;
-    res.end();
+    res.json({status: 'ok'});
     logger.info(`Received signal : ${JSON.stringify(signal)}`);
     const [isValidSignal, signalError] = Util.isValidSignal(signal);
     if (!isValidSignal) {
