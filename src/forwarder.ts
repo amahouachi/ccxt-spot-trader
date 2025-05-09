@@ -144,40 +144,50 @@ export class Forwarder {
       logger.error(`Failed to load webhooks from S3: ${JSON.stringify(err)}`, 'forwarder');
     }
   }
-
   sendSignal(signal: Signal): void {
     const now = new Date();
     const agent = new Agent({ connect: { rejectUnauthorized: false } });
-    const body= JSON.stringify(signal);
-    const signature = this.privateKey!==''?Util.signPayload(body, this.privateKey):'';
+    const body = JSON.stringify(signal);
+    const signature = this.privateKey !== '' ? Util.signPayload(body, this.privateKey) : '';
+
     for (const webhook of this.webhooks) {
       const { url, expiresAt, trialExpiresAt } = webhook;
-      const subscribed= new Date(expiresAt) > now;
-      const isTrial= !subscribed && new Date(trialExpiresAt||now.toISOString()) > now;
+      const subscribed = new Date(expiresAt) > now;
+      const isTrial = !subscribed && new Date(trialExpiresAt || now.toISOString()) > now;
       if (!subscribed && !isTrial) continue;
+
       const delay = isTrial ? 15 * 60 * 1000 : 0;
-      setTimeout(() => {
-        const controller = new AbortController();
-        const timeout = setTimeout(() => controller.abort(), 5000);
-        fetch(url, {
-          method: "POST",
-          headers: { 
-            "Content-Type": "application/json" ,
-            "X-Signal-Signature": signature 
-          },
-          body,
-          dispatcher: agent,
-          signal: controller.signal
-        })
-          .then(() => {
-            logger.debug(`Signal successfully sent to ${url}`);
-          })
-          .catch((error: any) => {
-            logger.error(`Failed to send signal to ${url}: ${error.message}`, 'forwarder');
-          })
-          .finally(() => clearTimeout(timeout));
+
+      setTimeout(async () => {
+        try {
+          await Util.resilientFetch(
+            url,
+            {
+              method: 'POST',
+              headers: {
+                'Content-Type': 'application/json',
+                'X-Signal-Signature': signature
+              },
+              body,
+              dispatcher: agent
+            },
+            3,     // maxRetries
+            1000,  // delayMs
+            5000   // timeoutMs
+          );
+          logger.debug(`Signal successfully sent to ${url}`);
+        } catch (error: any) {
+          logger.error(`Failed to send signal to ${url}: ${error.message}`, 'forwarder');
+          logger.debug(JSON.stringify(error));
+        }
       }, delay);
     }
-    this.signals.push({asset: signal.asset, side: signal.side, createdAt: now.toISOString()});
+
+    this.signals.push({
+      asset: signal.asset,
+      side: signal.side,
+      createdAt: now.toISOString()
+    });
   }
+
 }

@@ -1,32 +1,87 @@
 import { Readable } from "stream";
 import { OrderSide } from "./types";
 import crypto from 'crypto';
+import { logger } from "./logger";
+import { fetch, RequestInit, Response } from 'undici';
 
-export const Util= {
+export const Util = {
 
-  async sleep(ms: number){
+  async sleep(ms: number) {
     return new Promise<void>(resolve => {
       setTimeout(() => {
-        resolve()
-      },ms)
-    })
+        resolve();
+      }, ms);
+    });
   },
+  async resilientFetch(
+    input: string | URL,
+    init?: RequestInit & { dispatcher?: any },
+    maxRetries = 3,
+    delayMs = 1000,
+    timeoutMs?: number
+  ): Promise<Response> {
+    const url = typeof input === 'string' ? input : input.toString();
+    const method = init?.method || 'GET';
+
+    for (let attempt = 1; attempt <= maxRetries; attempt++) {
+      const controller = new AbortController();
+      const timeout = timeoutMs
+        ? setTimeout(() => controller.abort(), timeoutMs)
+        : null;
+
+      try {
+        const response = await fetch(input, {
+          ...init,
+          signal: controller.signal,
+        });
+
+        if (timeout) clearTimeout(timeout);
+        return response;
+      } catch (error: any) {
+        if (timeout) clearTimeout(timeout);
+
+        const isTimeout = error.name === 'AbortError';
+
+        logger.error(
+          `${method} ${url} failed (attempt ${attempt}/${maxRetries})` +
+          `: ${error.message || error}${isTimeout ? ' [timeout]' : ''}`
+        );
+
+        if (isTimeout) {
+          // ❌ Timeout: don't retry
+          throw error;
+        }
+
+        if (attempt < maxRetries) {
+          await Util.sleep(delayMs);
+        } else {
+          throw error;
+        }
+      }
+    }
+
+    throw new Error('Unexpected resilientFetch failure');
+  },
+
   executePromises: async (promises: Promise<any>[]) => {
     return await Promise.allSettled(promises);
   },
-  isValidSignal: (signal: any) : [boolean, string?] => {
+  isValidSignal: (signal: any): [boolean, string?] => {
+    if (!signal) {
+      return [false, 'Signal is undefined'];
+    }
     for (const field of ['side', 'asset']) {
       if (!signal[field]) {
         return [false, `Missing parameter : ${field}`];
       }
     }
-    const {side} = signal;
+    const { side } = signal;
     if (![OrderSide.buy, OrderSide.sell].includes(side)) {
       return [false, `Invalid value for side : ${side}`];
     }
     return [true];
   },
-  splitSymbol(symbol: string){
+  splitSymbol(symbol: string) {
     return symbol.split('/');
   },
   signPayload(payload: string, privateKey: string) {
@@ -41,4 +96,4 @@ export const Util= {
     return Buffer.concat(chunks).toString("utf-8");
   }
 
-}
+};

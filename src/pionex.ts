@@ -1,5 +1,7 @@
 import * as ccxt from 'ccxt';
 import {sha256} from 'js-sha256';
+import { logger } from './logger';
+import { Util } from './util';
 
 export class Pionex{
   public id= 'pionex';
@@ -88,36 +90,41 @@ export class Pionex{
     }
   }
   async createMarketOrder(symbol: string, side: 'BUY'|'SELL', cost: string, qty: string){
-    const timestamp= Date.now();
-    const path= `/api/v1/trade/order?timestamp=${timestamp}`;
-    const request: any= {
-      symbol: symbol.replace('/','_'),
-      side,
-      type: 'MARKET',
-    };
-    if(side==='BUY'){
-      request.amount= cost;
-    }else{
-      request.size= qty;
-    }
-    const signature= this.sign('POST', path, JSON.stringify(request));
-    const response= await fetch(`${this.baseUrl}${path}`, {
-      method: 'POST',
-      headers: {
-        'content-type': 'application/json',
-        'PIONEX-KEY': this.apiKey,
-        'PIONEX-SIGNATURE': signature
-      },
-      body: JSON.stringify(request)
-    });
-    if(response.ok){
-      const result= await response.json();
-      if(result.data && result.data.orderId){
-        return {id: result.data.orderId};
+    try{
+      const timestamp = Date.now();
+      const path = `/api/v1/trade/order?timestamp=${timestamp}`;
+      const request: any = {
+        symbol: symbol.replace('/', '_'),
+        side,
+        type: 'MARKET',
+      };
+      if (side === 'BUY') {
+        request.amount = cost;
+      } else {
+        request.size = qty;
       }
-      throw Error(`Error occured : ${result.code} - ${result.message}`);
-    }else{
-      throw Error(`Error occured : Response status = ${response.status}`);
+      const signature = this.sign('POST', path, JSON.stringify(request));
+      const response = await Util.resilientFetch(`${this.baseUrl}${path}`, {
+        method: 'POST',
+        headers: {
+          'content-type': 'application/json',
+          'PIONEX-KEY': this.apiKey,
+          'PIONEX-SIGNATURE': signature
+        },
+        body: JSON.stringify(request)
+      }, 3, 1000, 10*1000); 
+      if (response.ok) {
+        const result = await response.json() as {code: any, message: any, data?: any};
+        if (result.data && result.data.orderId) {
+          return { id: result.data.orderId };
+        }
+        throw Error(`Error occured : ${result.code} - ${result.message}`);
+      } else {
+        throw Error(`Error occured : Response status = ${response.status}`);
+      }
+    }catch(e: any){
+      logger.error(JSON.stringify(e), 'pionex');
+      throw e;
     }
 
   }
