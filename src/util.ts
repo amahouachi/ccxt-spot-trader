@@ -62,7 +62,13 @@ export const Util = {
 
     throw new Error('Unexpected resilientFetch failure');
   },
-
+  getIpv4(ip: string | string[] | undefined): string {
+    if (!ip) return 'unknown';
+    if (Array.isArray(ip)) {
+      ip = ip[0];
+    }
+    return ip.startsWith('::ffff:') ? ip.slice(7) : ip;
+  },
   executePromises: async (promises: Promise<any>[]) => {
     return await Promise.allSettled(promises);
   },
