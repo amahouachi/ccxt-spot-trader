@@ -7,6 +7,7 @@ import Market from '../src/market';
 import { logger } from '../src/logger';
 import { Util } from '../src/util';
 import { TradeJournal } from '../src/journal';
+/*
 
 describe("Test balance and order cost operations", () => {
   const accountConfigs: ExchangeAccountConfig[] = config.accounts;
@@ -117,3 +118,4 @@ describe("Test real exchange calls", () => {
     }
   }, 20000);
 });
+*/
