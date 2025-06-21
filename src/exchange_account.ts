@@ -1,5 +1,5 @@
 import Exchange from "./exchange";
-import {AccountBalance, ExchangeAccountConfig, OrderSide, QuoteToRelease} from "./types";
+import {AccountBalance, ExchangeAccountConfig, OrderSide, QuoteToRelease, RiskAdjustedSize, RiskProfile} from "./types";
 import Market from './market';
 import { logger } from "./logger";
 import { Order } from "ccxt";
@@ -12,11 +12,11 @@ export default class ExchangeAccount{
   public balance: AccountBalance= {};
   public MIN_ORDER_QUOTE_QTY= 5;
 
-  constructor(public name: string, public active: boolean, public useJournal: boolean, public exchange: Exchange, public markets: Market[], public gas: Gas|undefined) {
+  constructor(public name: string, public active: boolean, public riskProfile: RiskProfile, public useJournal: boolean, public exchange: Exchange, public markets: Market[], public gas: Gas|undefined) {
   }
 
   static fromConfig(config: ExchangeAccountConfig){
-    return new ExchangeAccount(config.name, config.active, config.useJournal||false, Exchange.fromConfig(config.exchange), Market.fromConfig(config.markets), config.gas?Gas.fromConfig(config.gas):undefined);
+    return new ExchangeAccount(config.name, config.active, config.riskProfile as RiskProfile, config.useJournal||false, Exchange.fromConfig(config.exchange), Market.fromConfig(config.markets), config.gas?Gas.fromConfig(config.gas):undefined);
   }
   
   async refillGas(){
@@ -36,7 +36,7 @@ export default class ExchangeAccount{
       }
     }
   }
-  async processSignalForMarkets(side: OrderSide, markets: Market[]) : Promise<void>{
+  async processSignalForMarkets(side: OrderSide, markets: Market[], riskAdjustedSize?: RiskAdjustedSize) : Promise<void>{
     markets.forEach(async (market) => {
       const symbol = market.symbol;
       if (side === OrderSide.buy) {
@@ -46,7 +46,8 @@ export default class ExchangeAccount{
         }
         logger.info(`send buy order for ${symbol}`, this.name);
         try {
-          const order = await this.buy(market);
+          const qtyPct= riskAdjustedSize?riskAdjustedSize[this.riskProfile]:1;
+          const order = await this.buy(market, qtyPct);
           logger.info(`order ${order.id} sent for ${symbol} : status=${order.status}, filled=${order.filled}, average=${order.average}`, this.name);
         } catch (e: any) {
           logger.error(e.message, this.name);
@@ -201,11 +202,12 @@ export default class ExchangeAccount{
     logger.debug(`order cost for ${market.symbol} = ${cost}`, this.name);
     return cost;
   }
-  async buy(market: Market){
-    const cost= this.getOrderCost(market);
+  async buy(market: Market, qtyPct: number){
+    let cost= this.getOrderCost(market);
     if(cost===0){
       throw Error(`order cost is 0 for ${market.symbol}`);
     }
+    cost= qtyPct * cost;
     logger.debug(`send buy order for ${market.symbol}, cost = ${cost}`, this.name);
     return await this.exchange.buyMarket(market.symbol, cost);
   }

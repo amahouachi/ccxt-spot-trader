@@ -1,5 +1,3 @@
-import { S3Client } from "@aws-sdk/client-s3";
-
 export type BotConfig= {
   endpoints: {
     signal: string;
@@ -18,8 +16,9 @@ export type BotConfig= {
   accounts: ExchangeAccountConfig[];
 }
 export type ExchangeAccountConfig= {
-  name: string
-  active: boolean
+  name: string;
+  active: boolean;
+  riskProfile: string;
   useJournal?: boolean;
   exchange: ExchangeConfig
   markets: MarketConfig[]
@@ -107,6 +106,14 @@ export type Signal ={
   tp?: number;
   sl?: number;
   price?: number;
+  riskAdjustedSize?: RiskAdjustedSize;
+}
+export type RiskProfile= 'low'|'moderate'|'high';
+
+export type RiskAdjustedSize={
+  low: number;
+  moderate: number;
+  high: number;
 }
 export type S3Options= {
   region: string;

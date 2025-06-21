@@ -32,8 +32,8 @@ export default class Exchange{
       });
     }
   }
-  async buyMarket(symbol: string, cost: number): Promise<Order>{
-    return await this._exchange.createMarketBuyOrderWithCost(symbol, cost);
+  async buyMarket(symbol: string, cost: number, params: any= {}): Promise<Order>{
+    return await this._exchange.createMarketBuyOrderWithCost(symbol, cost, params);
   }
   async sellMarket(symbol: string, qty: number): Promise<Order>{
     return await this._exchange.createMarketSellOrder(symbol, Number(this.roundAmount(symbol, qty)));
