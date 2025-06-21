@@ -10,6 +10,7 @@ import { TradeJournal } from "./journal";
 import { S3Client } from "@aws-sdk/client-s3";
 import { Forwarder } from "./forwarder";
 
+//@ts-ignore
 const config: BotConfig = configJson;
 
 logger.configure({disableConsole: false, disableFile: false, level: 'debug', fileName: 'app.log', rootPath: '.'});
