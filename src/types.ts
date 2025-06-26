@@ -19,6 +19,7 @@ export type ExchangeAccountConfig= {
   name: string;
   active: boolean;
   riskProfile: string;
+  ignoreSignals?: SignalReason[];
   useJournal?: boolean;
   exchange: ExchangeConfig
   markets: MarketConfig[]
@@ -107,8 +108,10 @@ export type Signal ={
   sl?: number;
   price?: number;
   riskAdjustedSize?: RiskAdjustedSize;
+  reason?: SignalReason;
 }
 export type RiskProfile= 'low'|'moderate'|'high';
+export type SignalReason= 'tp'|'sl'|'close';
 
 export type RiskAdjustedSize={
   low: number;

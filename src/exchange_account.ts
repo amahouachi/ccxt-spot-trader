@@ -1,5 +1,5 @@
 import Exchange from "./exchange";
-import {AccountBalance, ExchangeAccountConfig, OrderSide, QuoteToRelease, RiskAdjustedSize, RiskProfile} from "./types";
+import {AccountBalance, ExchangeAccountConfig, OrderSide, QuoteToRelease, RiskAdjustedSize, RiskProfile, SignalReason} from "./types";
 import Market from './market';
 import { logger } from "./logger";
 import { Order } from "ccxt";
@@ -12,11 +12,14 @@ export default class ExchangeAccount{
   public balance: AccountBalance= {};
   public MIN_ORDER_QUOTE_QTY= 5;
 
-  constructor(public name: string, public active: boolean, public riskProfile: RiskProfile, public useJournal: boolean, public exchange: Exchange, public markets: Market[], public gas: Gas|undefined) {
+  constructor(public name: string, public active: boolean, public riskProfile: RiskProfile, public ignoreSignals: SignalReason[], public useJournal: boolean, public exchange: Exchange, public markets: Market[], public gas: Gas|undefined) {
   }
 
   static fromConfig(config: ExchangeAccountConfig){
-    return new ExchangeAccount(config.name, config.active, config.riskProfile as RiskProfile, config.useJournal||false, Exchange.fromConfig(config.exchange), Market.fromConfig(config.markets), config.gas?Gas.fromConfig(config.gas):undefined);
+    return new ExchangeAccount(config.name, config.active, config.riskProfile as RiskProfile, config.ignoreSignals||[], config.useJournal||false, Exchange.fromConfig(config.exchange), Market.fromConfig(config.markets), config.gas?Gas.fromConfig(config.gas):undefined);
+  }
+  shouldIgnoreSignal(reason?: SignalReason){
+    return reason && this.ignoreSignals.includes(reason);
   }
   
   async refillGas(){
@@ -36,8 +39,12 @@ export default class ExchangeAccount{
       }
     }
   }
-  async processSignalForMarkets(side: OrderSide, markets: Market[], riskAdjustedSize?: RiskAdjustedSize) : Promise<void>{
+  async processSignalForMarkets(side: OrderSide, markets: Market[], riskAdjustedSize?: RiskAdjustedSize, signalReason?: SignalReason) : Promise<void>{
     markets.forEach(async (market) => {
+      if(this.shouldIgnoreSignal(signalReason)){
+        logger.info(`Signal ignored since in the ignore list : ${signalReason}`, this.name);
+        return;
+      }
       const symbol = market.symbol;
       if (side === OrderSide.buy) {
         if (this.hasOpenPosition(market)) {
