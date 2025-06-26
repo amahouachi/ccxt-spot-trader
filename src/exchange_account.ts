@@ -41,10 +41,6 @@ export default class ExchangeAccount{
   }
   async processSignalForMarkets(side: OrderSide, markets: Market[], riskAdjustedSize?: RiskAdjustedSize, signalReason?: SignalReason) : Promise<void>{
     markets.forEach(async (market) => {
-      if(this.shouldIgnoreSignal(signalReason)){
-        logger.info(`Signal ignored since in the ignore list : ${signalReason}`, this.name);
-        return;
-      }
       const symbol = market.symbol;
       if (side === OrderSide.buy) {
         if (this.hasOpenPosition(market)) {
