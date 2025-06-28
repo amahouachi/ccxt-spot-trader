@@ -39,7 +39,7 @@ export default class ExchangeAccount{
       }
     }
   }
-  async processSignalForMarkets(side: OrderSide, markets: Market[], riskAdjustedSize?: RiskAdjustedSize, signalReason?: SignalReason) : Promise<void>{
+  async processSignalForMarkets(side: OrderSide, markets: Market[], riskBasedSize?: RiskAdjustedSize) : Promise<void>{
     markets.forEach(async (market) => {
       const symbol = market.symbol;
       if (side === OrderSide.buy) {
@@ -49,7 +49,7 @@ export default class ExchangeAccount{
         }
         logger.info(`send buy order for ${symbol}`, this.name);
         try {
-          const qtyPct= riskAdjustedSize?riskAdjustedSize[this.riskProfile]:1;
+          const qtyPct= riskBasedSize?riskBasedSize[this.riskProfile]:1;
           const order = await this.buy(market, qtyPct);
           logger.info(`order ${order.id} sent for ${symbol} : status=${order.status}, filled=${order.filled}, average=${order.average}`, this.name);
         } catch (e: any) {

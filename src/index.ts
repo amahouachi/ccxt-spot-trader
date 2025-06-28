@@ -52,7 +52,7 @@ async function start(){
       logger.error(`Invalid signal. ${signalError}`);
       return;
     }
-    const {asset,side, tp, sl, price, riskAdjustedSize, reason}= signal;
+    const {asset,side, tp, sl, price, riskBasedSize: riskBasedSize, reason}= signal;
     activeAccounts.forEach(async account => {
       const markets = account.findMarkets(asset);
       if(markets.length===0){
@@ -63,7 +63,7 @@ async function start(){
         logger.info(`[${account.name}] Signal ignored since reason is ${reason}`);
         return;
       }
-      await account.processSignalForMarkets(side, markets, riskAdjustedSize, reason);
+      await account.processSignalForMarkets(side, markets, riskBasedSize);
       await Util.sleep(5000);
       await account.loadBalance();
       if (side === "sell") {

@@ -107,7 +107,7 @@ export type Signal ={
   tp?: number;
   sl?: number;
   price?: number;
-  riskAdjustedSize?: RiskAdjustedSize;
+  riskBasedSize?: RiskAdjustedSize;
   reason?: SignalReason;
 }
 export type RiskProfile= 'low'|'moderate'|'high';
