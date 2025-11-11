@@ -52,10 +52,14 @@ async function start(){
       logger.error(`Invalid signal. ${signalError}`);
       return;
     }
-    const {strategy, asset,side, tp, sl, price, riskBasedSize: riskBasedSize, reason}= signal;
+    const {strategy, account : signalAccount, asset,side, tp, sl, price, riskBasedSize: riskBasedSize, reason}= signal;
     activeAccounts.forEach(async account => {
       if(account.strategy!==strategy){
-        logger.debug(`not our strategy ${strategy}`, account.name);
+        logger.debug(`signal for a different strategy ${strategy}`, account.name);
+        return;
+      }
+      if(signalAccount && account.name!==signalAccount){
+        logger.debug(`signal for a different account ${signalAccount}`, account.name);
         return;
       }
       const markets = account.findMarkets(asset);

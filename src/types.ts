@@ -106,6 +106,7 @@ export type Signal ={
   strategy: string;
   asset: string;
   side: OrderSide;
+  account?: string;
   tp?: number;
   sl?: number;
   price?: number;
