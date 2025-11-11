@@ -17,6 +17,7 @@ export type BotConfig= {
 }
 export type ExchangeAccountConfig= {
   name: string;
+  strategy: string;
   active: boolean;
   riskProfile: string;
   ignoreSignals?: SignalReason[];
@@ -102,6 +103,7 @@ export type Trade= {
   quantity: number;
 }
 export type Signal ={
+  strategy: string;
   asset: string;
   side: OrderSide;
   tp?: number;

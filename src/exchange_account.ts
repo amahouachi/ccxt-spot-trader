@@ -12,11 +12,11 @@ export default class ExchangeAccount{
   public balance: AccountBalance= {};
   public MIN_ORDER_QUOTE_QTY= 5;
 
-  constructor(public name: string, public active: boolean, public riskProfile: RiskProfile, public ignoreSignals: SignalReason[], public useJournal: boolean, public exchange: Exchange, public markets: Market[], public gas: Gas|undefined) {
+  constructor(public name: string, public strategy: string, public active: boolean, public riskProfile: RiskProfile, public ignoreSignals: SignalReason[], public useJournal: boolean, public exchange: Exchange, public markets: Market[], public gas: Gas|undefined) {
   }
 
   static fromConfig(config: ExchangeAccountConfig){
-    return new ExchangeAccount(config.name, config.active, config.riskProfile as RiskProfile, config.ignoreSignals||[], config.useJournal||false, Exchange.fromConfig(config.exchange), Market.fromConfig(config.markets), config.gas?Gas.fromConfig(config.gas):undefined);
+    return new ExchangeAccount(config.name, config.strategy, config.active, config.riskProfile as RiskProfile, config.ignoreSignals||[], config.useJournal||false, Exchange.fromConfig(config.exchange), Market.fromConfig(config.markets), config.gas?Gas.fromConfig(config.gas):undefined);
   }
   shouldIgnoreSignal(reason?: SignalReason){
     return reason && this.ignoreSignals.includes(reason);

@@ -52,8 +52,12 @@ async function start(){
       logger.error(`Invalid signal. ${signalError}`);
       return;
     }
-    const {asset,side, tp, sl, price, riskBasedSize: riskBasedSize, reason}= signal;
+    const {strategy, asset,side, tp, sl, price, riskBasedSize: riskBasedSize, reason}= signal;
     activeAccounts.forEach(async account => {
+      if(account.strategy!==strategy){
+        logger.debug(`not our strategy ${strategy}`, account.name);
+        return;
+      }
       const markets = account.findMarkets(asset);
       if(markets.length===0){
         logger.debug(`no market for ${asset}`, account.name);
@@ -77,15 +81,15 @@ async function start(){
         break;
       }
     }
-    let assetPrice= 20;
+    let slPrice= 20;
     if(assetUsdtMarket){
-      assetPrice= Number((assetUsdtMarket.price*0.9).toFixed(2));
+      slPrice= Number((assetUsdtMarket.price*0.9).toFixed(2));
     }
     if(sl){
-      assetPrice= sl;
+      slPrice= sl;
     }
     if(telegramBot){
-      let telegramMessage= `${asset}/USDT\n${side} at current price\nSL ${assetPrice}`;
+      let telegramMessage= `${asset}/USDT\n${side} at current price\nSL ${slPrice}`;
       if(side==='sell'){
         telegramMessage= `/close ${asset}/USDT`;
       }
