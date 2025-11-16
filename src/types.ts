@@ -2,6 +2,7 @@ export type BotConfig= {
   endpoints: {
     signal: string;
     releaseQuote: string;
+    liquidateAccount: string;
     recordTransfer: string;
     balances: string;
   }

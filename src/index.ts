@@ -125,6 +125,22 @@ async function start(){
     }
     res.end();
   });
+  server.addPostEndpoint(endpoints.liquidateAccount, async (req: any, res: any) => {
+    const request= req.body as {account: string};
+    logger.info(`Received request to liquidate all positions for account : ${request.account}`);
+    const account= activeAccounts.find(a => a.name===request.account);
+    if(account){
+      await account.loadBalance();
+      await Util.sleep(2000);
+      for(const market of account.markets){
+        await account.sell(market); 
+      }
+      await Util.sleep(2000);
+      await account.loadBalance();
+      res.json({balance: account.balance});
+    }
+    res.end();
+  });
   server.addPostEndpoint(endpoints.recordTransfer, async (req: any, res: any) => {
     if(!journal){
       res.status(400).json({ error: "Journal not configured" });
