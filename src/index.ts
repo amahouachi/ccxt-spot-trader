@@ -133,7 +133,11 @@ async function start(){
       await account.loadBalance();
       await Util.sleep(2000);
       for(const market of account.markets){
-        await account.sell(market); 
+        try{
+          await account.sell(market); 
+        }catch(e: any){
+          logger.error(e.message);
+        }
       }
       await Util.sleep(2000);
       await account.loadBalance();
